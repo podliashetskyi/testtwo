@@ -167,15 +167,15 @@ function PortfolioPreview() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {displayProjects.map((project) => (
-              <Link key={project.id} href={`/portfolio/${project.slug}`}>
-                <Card className="bg-zinc-800/50 border-zinc-700/50 group cursor-pointer" data-testid={`card-project-${project.id}`}>
+              <Link key={project.id} href={`/portfolio/${project.slug}`} className="h-full">
+                <Card className="bg-zinc-800/50 border-zinc-700/50 group cursor-pointer h-full flex flex-col" data-testid={`card-project-${project.id}`}>
                   <div className="relative aspect-[4/3] rounded-t-md overflow-hidden">
                     <img src={project.coverImage} alt={t(project, "title")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
-                  <div className="p-4">
+                  <div className="p-4 flex flex-col flex-1">
                     <span className="text-primary text-xs font-medium uppercase tracking-wider">{t(project, "category")}</span>
                     <h3 className="text-white font-semibold mt-1 group-hover:text-primary transition-colors line-clamp-2">{t(project, "title")}</h3>
-                    <p className="text-zinc-400 text-sm mt-1 line-clamp-3">{t(project, "shortDescription")}</p>
+                    <p className="text-zinc-400 text-sm mt-1 line-clamp-3 mt-auto">{t(project, "shortDescription")}</p>
                   </div>
                 </Card>
               </Link>
