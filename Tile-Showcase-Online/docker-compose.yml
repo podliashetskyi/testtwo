@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tile-showcase-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tile_showcase
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tile_showcase"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tile-showcase-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/tile_showcase
+      SESSION_SECRET: dev_session_secret_change_me
+      SESSION_COOKIE_SECURE: "false"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+      SITE_URL: http://localhost:8080
+    ports:
+      - "8080:5000"
+
+volumes:
+  postgres_data:

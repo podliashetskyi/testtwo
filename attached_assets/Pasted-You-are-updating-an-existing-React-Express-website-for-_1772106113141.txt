@@ -1,0 +1,490 @@
+You are updating an existing React + Express website for **“Max Flis & Bad AS”**.
+
+Your task is to **improve technical SEO/indexability**, **update the UI theme**, and **extend the admin panel/content management** without breaking the current project.
+
+Important constraints:
+
+* Do **not** redesign the website from scratch.
+* Keep the current structure, route patterns, and general layout unless a small safe adjustment is needed.
+* Preserve existing admin routes, especially `/admin` and `/admin/login` if they already exist.
+* Do not break existing API behavior unless required to support the requested functionality.
+* Prefer incremental changes over a full rewrite.
+* Keep styling and architecture clean and maintainable.
+* Do not claim or hardcode anything that “guarantees” Google indexing. The goal is to maximize technical SEO readiness and proper crawlability/indexability.
+
+---
+
+## GOALS
+
+1. Improve SEO/indexability according to current best practices for a React + Express site.
+2. Update the UI to a black / white / yellow theme.
+3. Ensure the admin panel supports content management for all required content types.
+4. Add Services pages and Services CRUD.
+5. Make hero texts editable from admin.
+6. Make contact data editable from admin.
+7. Randomize selected home page blocks on each page reload.
+8. Make the whole website bilingual:
+
+   * Norwegian
+   * English
+     and allow admin to manage both language versions of content.
+
+---
+
+1. DESIGN / THEME CHANGES
+
+---
+
+Update the entire website theme as follows:
+
+* Remove any orange color usage across the site.
+* Base theme:
+
+  * Background: black or very dark near-black
+  * Primary text: white
+  * Accent color: yellow `rgb(244, 203, 69)`
+* Use the yellow accent ONLY for:
+
+  * primary CTA buttons
+  * links
+  * active / hover / focus interactive states
+  * small highlights where appropriate
+* Keep readability and contrast strong.
+* Ensure consistency across:
+
+  * header
+  * footer
+  * buttons
+  * cards
+  * forms
+  * blog cards
+  * portfolio cards
+  * services cards
+  * review blocks
+  * admin UI where reasonable
+
+Acceptance criteria:
+
+* No visible orange remains anywhere.
+* All pages are readable and visually consistent.
+* White text on black/dark background, yellow accents only for interactive emphasis.
+
+---
+
+2. SITE STRUCTURE / CONTENT MODEL CHANGES
+
+---
+
+Keep the current structure and sections as they are.
+Do not rebuild the website from scratch.
+
+Add the following new content structure:
+
+A) Services
+
+* Create a public **Services** page with a list of services.
+* Each service must have its own detail page, e.g. `/services/:slug`
+* Admin must be able to CRUD services.
+* Each service should support:
+
+  * title
+  * slug
+  * short description / excerpt
+  * full description / body
+  * image if applicable
+  * SEO fields if needed
+  * language content for both Norwegian and English
+
+B) Hero text editing
+
+* Admin must be able to edit hero section text on all relevant pages.
+* At minimum support hero content for:
+
+  * Home
+  * Portfolio page
+  * Blog page
+  * Services page
+  * Contact page
+  * Reviews page if applicable
+* Hero content should support both languages.
+
+C) Contact data editing
+
+* Admin must be able to edit/change contact data shown publicly, such as:
+
+  * phone
+  * email
+  * address
+  * business name if configurable
+  * opening / response info if present
+  * footer contact info
+* Content should support both languages where needed.
+
+D) Randomized home page content
+On each page reload, the Home page should randomly display:
+
+* Services shown on Home
+* Featured projects shown on Home
+* Feedbacks / reviews shown on Home
+
+Requirements:
+
+* Randomization must happen from existing published content.
+* Do not show drafts/unpublished items.
+* Avoid duplicates within the same section on the same load.
+* Keep performance reasonable.
+
+---
+
+3. MULTILINGUAL WEBSITE (NORWEGIAN + ENGLISH)
+
+---
+
+Implement full bilingual support for the whole website.
+
+Languages:
+
+* Norwegian
+* English
+
+Requirements:
+
+* Add a language switcher in the public site UI.
+* Add admin support so content editors can fill required fields in both languages.
+* Public pages must render the correct language version based on selected language.
+* If one language field is missing, use a safe fallback strategy and document it.
+* Route structure may stay the same unless current architecture strongly prefers language-prefixed routes.
+* All editable content types must support both languages where applicable:
+
+  * pages / hero content
+  * services
+  * portfolio items
+  * blog posts
+  * reviews
+  * contact data
+  * SEO metadata
+
+Do not hardcode translated text if it should be managed by admin.
+
+---
+
+4. ADMIN PANEL (CONTENT MANAGEMENT)
+
+---
+
+Confirm the admin panel exists and supports these actions. If something is missing, implement it.
+
+Admin must be able to:
+
+A) Portfolio items
+
+* Create / edit / delete
+* Upload images
+* Set title
+* Set short description / full description
+* Set slug
+* Manage content in Norwegian and English
+
+B) Reviews / feedbacks
+
+* Create / edit / delete
+* These are internal site reviews managed by admin, NOT Google reviews
+* Public reviews section/page must use admin-managed reviews
+* Support both languages if review text is language-specific
+
+C) Blog posts / articles
+
+* Create / edit / delete
+* Visible on public blog/articles section/page
+* Support title, slug, excerpt, body, date, image if applicable
+* Support both languages
+
+D) Services
+
+* Create / edit / delete
+* Visible on public Services page and service detail pages
+* Support both languages
+
+E) Hero texts / page content blocks
+
+* Manage hero texts for relevant public pages
+* Support both languages
+
+F) Contact data
+
+* Manage public contact info
+* Support both languages where applicable
+
+G) Contact form submissions
+
+* Store public contact form submissions
+* Admin must be able to see a list of inquiries:
+
+  * name
+  * email
+  * phone if field exists
+  * message
+  * date/time
+* Read-only list is enough unless existing architecture already supports more
+
+Requirements:
+
+* Keep existing admin route(s), especially `/admin/login` if already present.
+* Add simple validation for form actions.
+* Add success/error messages for admin CRUD actions.
+* Ensure public site reflects latest admin content.
+
+Acceptance criteria:
+
+* Admin can log in.
+* Admin can manage Portfolio, Reviews, Blog Posts, Services, Hero Texts, Contact Data.
+* Admin can see contact inquiries.
+* Public pages reflect latest content.
+
+---
+
+5. FOOTER SOCIAL LINKS
+
+---
+
+Update the footer to include:
+
+* Instagram
+* placeholders for other social networks
+
+Requirements:
+
+* Use icons if available; otherwise text links are fine.
+* Style them using the new theme.
+* Yellow accent for links / hover states.
+* Allow easy future editing of the social URLs.
+* If practical, expose footer social links in admin settings as editable fields.
+
+---
+
+6. SEO / INDEXING BEST PRACTICES
+
+---
+
+Implement current technical SEO best practices for a React + Express website.
+
+Public pages that should be indexable:
+
+* /
+* /portfolio
+* /portfolio/:slug
+* /blog
+* /blog/:slug
+* /services
+* /services/:slug
+* any other public marketing/content pages already in the project
+
+Non-indexable pages:
+
+* /admin
+* /admin/login
+* admin-only pages
+* auth-only pages
+* preview/draft/internal pages
+* API routes
+
+A) Route-level SEO metadata
+For every public page, implement dynamic head metadata:
+
+* unique `<title>`
+* unique `<meta name="description">`
+* `<link rel="canonical">`
+* Open Graph tags:
+
+  * `og:title`
+  * `og:description`
+  * `og:type`
+  * `og:url`
+  * `og:image` when available
+* Twitter tags where appropriate
+* support metadata per language where possible
+
+Requirements:
+
+* Home page: business-focused title/description
+* Portfolio list page: overview metadata
+* Portfolio detail page: item-specific metadata
+* Blog list page: overview metadata
+* Blog detail page: post-specific metadata
+* Services list page: overview metadata
+* Service detail page: service-specific metadata
+* Contact / reviews pages: proper metadata if public
+* Canonicals must point to clean preferred URLs with no junk parameters
+
+B) robots controls
+
+* Add `robots.txt`
+* Allow crawling of public pages
+* Disallow crawling of admin/internal routes where appropriate
+* Include sitemap URL
+* Do not rely on robots.txt alone to prevent indexing of private HTML pages
+* Add `noindex,nofollow` or equivalent X-Robots-Tag for admin/internal pages
+
+C) sitemap
+Create a production sitemap.xml including only canonical public URLs:
+
+* /
+* /portfolio
+* /portfolio/:slug
+* /blog
+* /blog/:slug
+* /services
+* /services/:slug
+* any other indexable public pages
+
+Requirements:
+
+* Use a single production base URL from env/config, e.g. `SITE_URL`
+* Exclude admin, login, API, drafts, previews, duplicates
+* Include last modified dates if available
+
+D) JavaScript SEO / renderability
+This is a React site. Improve renderability as much as possible:
+
+* Make sure important content is rendered properly and not hidden behind interaction
+* Avoid blank-shell style pages as much as practical
+* Ensure detail pages show meaningful content
+* Add proper loading and error states
+* Avoid soft-404 behavior
+* If realistic without a major rewrite, add pre-rendering / static generation for public pages
+* If not feasible, improve current setup as much as possible and document the limitation
+
+E) URL hygiene and status handling
+
+* One canonical URL per public page
+* Avoid duplicate URLs from trailing slash / query params
+* Handle missing slugs with proper 404 behavior if possible
+* Do not index internal filter/search parameter pages unless explicitly intended
+
+F) Structured data
+Add JSON-LD where appropriate:
+
+* Organization or LocalBusiness schema on the homepage / contact page using real known business info only
+* BlogPosting schema on blog detail pages
+* Service schema only if appropriate and only with real data
+* BreadcrumbList if safe and useful
+
+Do not invent fake business details, ratings, reviews, prices, or addresses.
+
+G) Technical basics
+Verify and fix:
+
+* meaningful heading hierarchy
+* one H1 per main page where practical
+* descriptive alt text for images
+* crawlable internal links using normal anchor links
+* no accidental `noindex` on public pages
+* no accidental robots blocking of public pages
+
+---
+
+7. CONTACT FORM
+
+---
+
+Ensure the public contact form:
+
+* stores submissions persistently
+* validates required fields
+* shows success/error message
+* appears in the admin panel as inquiries
+* follows the updated theme
+* supports both languages in labels/messages
+
+---
+
+8. QUICK QA CHECKLIST (DO BEFORE FINISH)
+
+---
+
+Before finishing, verify all of the following:
+
+Theme / UI
+
+* Visit all public pages
+* Confirm black/white/yellow theme consistency
+* Confirm no orange remains
+
+Admin / content
+
+* Submit the contact form and verify the entry appears in admin
+* Add a portfolio item and confirm it appears publicly
+* Add a blog post and confirm it appears publicly
+* Add a review and confirm it appears publicly
+* Add a service and confirm it appears on Services page and detail page
+* Edit hero text and confirm it updates publicly
+* Edit contact data and confirm it updates publicly
+* Test both languages and confirm content switches correctly
+
+SEO
+
+* Verify public pages have unique title, description, canonical
+* Verify admin/internal pages are noindex
+* Verify robots.txt exists and is correct
+* Verify sitemap.xml exists and includes public canonical URLs only
+* Verify portfolio/blog/services detail pages have dynamic metadata
+* Verify structured data exists where applicable
+* Verify no SEO changes break routing or admin behavior
+
+---
+
+9. REQUIRED DELIVERABLES
+
+---
+
+Make the code changes and also create/update:
+
+* `SEO_NOTES.md`
+
+In `SEO_NOTES.md`, include:
+
+* what was implemented
+* which routes are indexable
+* which routes are noindex
+* sitemap location
+* robots location
+* required env vars (e.g. `SITE_URL`)
+* multilingual approach used
+* which content types support both languages
+* any limitations still remaining because of client-side rendering
+* any limitations still remaining because of current architecture
+* what to submit in Google Search Console after deploy
+
+Also provide a short implementation summary including:
+
+* theme files/components changed
+* admin features added/fixed
+* any new models/tables
+* multilingual data model changes
+* SEO-related files added
+
+---
+
+10. ACCEPTANCE CRITERIA
+
+---
+
+The work is complete when:
+
+* theme is updated to black/white/yellow and no orange remains
+* Services page and service detail pages exist
+* Services CRUD exists in admin
+* hero texts are editable from admin
+* contact data is editable from admin
+* home page services / featured projects / feedbacks randomize on reload
+* public website supports Norwegian and English
+* admin supports both language versions of required content
+* portfolio, reviews, blog posts, services, hero texts, contact data are manageable via admin
+* contact form submissions are stored and visible in admin
+* public pages have proper SEO metadata
+* admin/internal pages are noindex
+* robots.txt and sitemap.xml exist and are correct
+* no critical existing functionality is broken
+
+Before coding, inspect the current project structure and adapt implementation to the existing stack.
+Prefer safe incremental changes over a full rewrite.
