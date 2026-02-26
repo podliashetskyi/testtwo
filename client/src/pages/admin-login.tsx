@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Lock } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/seo";
 
@@ -20,7 +20,9 @@ export default function AdminLogin() {
       const res = await apiRequest("POST", "/api/admin/login", { username, password });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      queryClient.setQueryData(["/api/admin/me"], { isAdmin: true });
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/me"] });
       setLocation("/admin");
     },
     onError: () => {

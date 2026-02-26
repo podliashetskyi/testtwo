@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import {
@@ -13,7 +13,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import fs from "fs";
 
-const UPLOAD_DIR = path.join(process.cwd(), "client", "public", "images", "uploads");
+const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -58,6 +58,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.use("/images/uploads", express.static(UPLOAD_DIR, { maxAge: "7d" }));
+
   const shouldUseSecureSessionCookie =
     process.env.SESSION_COOKIE_SECURE === "true" ||
     (process.env.SESSION_COOKIE_SECURE !== "false" &&

@@ -232,6 +232,8 @@ export default function Admin() {
 
   const { data: authData, isLoading: authLoading } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/me"],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   useEffect(() => {

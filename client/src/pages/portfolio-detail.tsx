@@ -58,6 +58,14 @@ export default function PortfolioDetail() {
         description={t(project, "shortDescription")}
         canonical={`/portfolio/${project.slug}`}
         ogImage={project.coverImage}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CreativeWork",
+          "name": title,
+          "description": t(project, "shortDescription"),
+          "image": project.coverImage,
+          "author": { "@type": "Organization", "name": "Max Flis & Bad AS" },
+        }}
       />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Link href="/portfolio">
