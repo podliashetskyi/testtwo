@@ -114,8 +114,8 @@ function ServicesSection() {
                       <img src={svc.image} alt={t(svc, "title")} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
                   )}
-                  <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors">{t(svc, "title")}</h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed">{t(svc, "excerpt")}</p>
+                  <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">{t(svc, "title")}</h3>
+                  <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3">{t(svc, "excerpt")}</p>
                 </Card>
               </Link>
             ))}
@@ -174,8 +174,8 @@ function PortfolioPreview() {
                   </div>
                   <div className="p-4">
                     <span className="text-primary text-xs font-medium uppercase tracking-wider">{t(project, "category")}</span>
-                    <h3 className="text-white font-semibold mt-1 group-hover:text-primary transition-colors">{t(project, "title")}</h3>
-                    <p className="text-zinc-400 text-sm mt-1 line-clamp-2">{t(project, "shortDescription")}</p>
+                    <h3 className="text-white font-semibold mt-1 group-hover:text-primary transition-colors line-clamp-2">{t(project, "title")}</h3>
+                    <p className="text-zinc-400 text-sm mt-1 line-clamp-3">{t(project, "shortDescription")}</p>
                   </div>
                 </Card>
               </Link>
@@ -223,7 +223,7 @@ function ReviewsSection() {
                   <Star key={`e${i}`} className="w-4 h-4 text-zinc-700" />
                 ))}
               </div>
-              <p className="text-zinc-300 text-sm leading-relaxed mb-4 line-clamp-4">{t(review, "text")}</p>
+              <p className="text-zinc-300 text-sm leading-relaxed mb-4 line-clamp-3">{t(review, "text")}</p>
               <p className="text-white font-medium text-sm">{review.authorName}</p>
             </Card>
           ))}

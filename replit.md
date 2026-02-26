@@ -77,6 +77,7 @@ A professional bilingual (Norwegian/English) business card website for Max Flis 
 - POST `/api/admin/login` - Admin login
 - POST `/api/admin/logout` - Admin logout
 - GET `/api/admin/me` - Check admin auth status
+- POST `/api/admin/upload` - Upload image (multer, max 5MB, jpg/png/webp only, saves to /images/uploads/)
 - CRUD for: portfolio, blog, services, reviews, hero content, settings
 - GET `/api/admin/contacts` - List contact submissions
 
@@ -99,3 +100,8 @@ A professional bilingual (Norwegian/English) business card website for Max Flis 
 - Open Sans font family
 - Admin panel uses sidebar navigation (no public navbar/footer)
 - Bilingual admin forms with side-by-side NO/EN fields
+- Admin form fields have max-length validation with character count indicators
+- Admin edit/delete buttons use yellow/red accent colors for visibility
+- Image upload via drag-and-drop or manual URL entry in admin forms
+- Homepage featured cards use line-clamp-2 on titles and line-clamp-3 on descriptions/excerpts
+- Uploaded images stored in client/public/images/uploads/ (multer, max 5MB)

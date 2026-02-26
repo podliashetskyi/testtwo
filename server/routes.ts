@@ -8,6 +8,31 @@ import {
 import { z } from "zod";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import multer from "multer";
+import path from "path";
+import { randomUUID } from "crypto";
+import fs from "fs";
+
+const UPLOAD_DIR = path.join(process.cwd(), "client", "public", "images", "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${randomUUID()}${ext}`);
+    },
+  }),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only .jpg, .png, and .webp images are allowed"));
+  },
+});
 
 const contactSchema = z.object({
   name: z.string().min(1),
@@ -85,6 +110,20 @@ export async function registerRoutes(
 
   app.get("/api/admin/me", (req, res) => {
     res.json({ isAdmin: !!req.session?.isAdmin });
+  });
+
+  app.post("/api/admin/upload", requireAdmin, (req, res) => {
+    upload.single("image")(req, res, (err: any) => {
+      if (err) {
+        const msg = err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE"
+          ? "File too large. Maximum size is 5MB."
+          : err.message || "Upload failed";
+        return res.status(400).json({ message: msg });
+      }
+      if (!req.file) return res.status(400).json({ message: "No file provided" });
+      const url = `/images/uploads/${req.file.filename}`;
+      return res.json({ url });
+    });
   });
 
   app.get("/api/portfolio", async (_req, res) => {

@@ -50,7 +50,7 @@ export default function Services() {
                       </div>
                     )}
                     <div className="p-5">
-                      <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors">{t(service, "title")}</h3>
+                      <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">{t(service, "title")}</h3>
                       <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3">{t(service, "excerpt")}</p>
                       <div className="flex items-center gap-1 text-primary text-sm font-medium mt-4">
                         {ui("learnMore", lang)} <ArrowRight className="w-3.5 h-3.5" />

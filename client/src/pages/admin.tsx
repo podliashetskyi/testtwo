@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   LayoutDashboard, Image, FileText, Mail, LogOut, Plus, Pencil, Trash2,
   ArrowLeft, Save, Eye, Star, Wrench, MessageSquare, Type, Settings,
+  Upload, X, CheckCircle, AlertCircle,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,13 @@ import type {
   PortfolioProject, BlogPost, ContactSubmission,
   Service, Review, HeroContent, SiteSetting,
 } from "@shared/schema";
+
+const MAX = { title: 100, subtitle: 120, slug: 80, category: 50, excerpt: 200, author: 80 };
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+const editBtnClass = "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20";
+const deleteBtnClass = "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 hover:text-red-300";
 
 type AdminView =
   | "dashboard"
@@ -33,44 +41,182 @@ function autoSlug(title: string) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-function BilingualInput({ label, valueNo, valueEn, onChangeNo, onChangeEn, testIdPrefix }: {
+function CharCount({ value, max }: { value: string; max: number }) {
+  const len = value.length;
+  const near = len >= max * 0.8;
+  const over = len > max;
+  if (!near) return null;
+  return (
+    <span className={`text-xs ${over ? "text-red-400 font-medium" : "text-zinc-500"}`}>
+      {len}/{max}
+    </span>
+  );
+}
+
+function ImageUploader({ value, onChange, testId, label }: {
+  value: string; onChange: (v: string) => void; testId: string; label: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const doUpload = useCallback(async (file: File) => {
+    setError("");
+    setSuccess("");
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("Only .jpg, .png, and .webp files are allowed");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError("File too large. Maximum size is 5MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(data.message);
+      }
+      const data = await res.json();
+      onChange(data.url);
+      setSuccess("Image uploaded");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(e.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, [onChange]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) doUpload(file);
+  }, [doUpload]);
+
+  return (
+    <div>
+      <label className="text-zinc-300 text-sm font-medium block mb-2">{label}</label>
+      <div className="space-y-2">
+        <div
+          className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+            dragOver ? "border-primary bg-primary/5" : "border-zinc-700 hover:border-zinc-500"
+          }`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileRef.current?.click()}
+          data-testid={`${testId}-dropzone`}
+        >
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) doUpload(f); e.target.value = ""; }}
+            data-testid={`${testId}-file`}
+          />
+          {uploading ? (
+            <div className="flex items-center justify-center gap-2 text-zinc-400 py-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Uploading...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1 py-1">
+              <Upload className="w-5 h-5 text-zinc-500" />
+              <span className="text-zinc-400 text-sm">Drop image here or click to browse</span>
+              <span className="text-zinc-600 text-xs">JPG, PNG, WebP up to 5MB</span>
+            </div>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 text-red-400 text-xs">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+          </div>
+        )}
+        {success && (
+          <div className="flex items-center gap-2 text-green-400 text-xs">
+            <CheckCircle className="w-3.5 h-3.5 shrink-0" /> {success}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            value={value}
+            onChange={(e) => { onChange(e.target.value); setError(""); setSuccess(""); }}
+            placeholder="Or paste image URL"
+            className="bg-zinc-800 border-zinc-700 text-white text-sm"
+            data-testid={testId}
+          />
+          {value && (
+            <Button type="button" size="sm" variant="ghost" className="text-zinc-500 hover:text-zinc-300 shrink-0 px-2" onClick={() => onChange("")}>
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
+        {value && (
+          <img src={value} alt="Preview" className="h-16 w-auto rounded-md object-cover border border-zinc-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BilingualInput({ label, valueNo, valueEn, onChangeNo, onChangeEn, testIdPrefix, maxLen }: {
   label: string; valueNo: string; valueEn: string;
   onChangeNo: (v: string) => void; onChangeEn: (v: string) => void;
-  testIdPrefix: string;
+  testIdPrefix: string; maxLen?: number;
 }) {
   return (
     <div>
       <label className="text-zinc-300 text-sm font-medium block mb-2">{label}</label>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <span className="text-zinc-500 text-xs block mb-1">Norsk</span>
-          <Input value={valueNo} onChange={(e) => onChangeNo(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid={`${testIdPrefix}-no`} />
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-zinc-500 text-xs">Norsk</span>
+            {maxLen && <CharCount value={valueNo} max={maxLen} />}
+          </div>
+          <Input value={valueNo} onChange={(e) => onChangeNo(maxLen ? e.target.value.slice(0, maxLen) : e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid={`${testIdPrefix}-no`} />
         </div>
         <div>
-          <span className="text-zinc-500 text-xs block mb-1">English</span>
-          <Input value={valueEn} onChange={(e) => onChangeEn(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid={`${testIdPrefix}-en`} />
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-zinc-500 text-xs">English</span>
+            {maxLen && <CharCount value={valueEn} max={maxLen} />}
+          </div>
+          <Input value={valueEn} onChange={(e) => onChangeEn(maxLen ? e.target.value.slice(0, maxLen) : e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid={`${testIdPrefix}-en`} />
         </div>
       </div>
     </div>
   );
 }
 
-function BilingualTextarea({ label, valueNo, valueEn, onChangeNo, onChangeEn, rows = 5, testIdPrefix, hint }: {
+function BilingualTextarea({ label, valueNo, valueEn, onChangeNo, onChangeEn, rows = 5, testIdPrefix, hint, maxLen }: {
   label: string; valueNo: string; valueEn: string;
   onChangeNo: (v: string) => void; onChangeEn: (v: string) => void;
-  rows?: number; testIdPrefix: string; hint?: string;
+  rows?: number; testIdPrefix: string; hint?: string; maxLen?: number;
 }) {
   return (
     <div>
       <label className="text-zinc-300 text-sm font-medium block mb-2">{label}</label>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <span className="text-zinc-500 text-xs block mb-1">Norsk</span>
-          <Textarea value={valueNo} onChange={(e) => onChangeNo(e.target.value)} rows={rows} className="bg-zinc-800 border-zinc-700 text-white resize-none" data-testid={`${testIdPrefix}-no`} />
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-zinc-500 text-xs">Norsk</span>
+            {maxLen && <CharCount value={valueNo} max={maxLen} />}
+          </div>
+          <Textarea value={valueNo} onChange={(e) => onChangeNo(maxLen ? e.target.value.slice(0, maxLen) : e.target.value)} rows={rows} className="bg-zinc-800 border-zinc-700 text-white resize-none" data-testid={`${testIdPrefix}-no`} />
         </div>
         <div>
-          <span className="text-zinc-500 text-xs block mb-1">English</span>
-          <Textarea value={valueEn} onChange={(e) => onChangeEn(e.target.value)} rows={rows} className="bg-zinc-800 border-zinc-700 text-white resize-none" data-testid={`${testIdPrefix}-en`} />
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-zinc-500 text-xs">English</span>
+            {maxLen && <CharCount value={valueEn} max={maxLen} />}
+          </div>
+          <Textarea value={valueEn} onChange={(e) => onChangeEn(maxLen ? e.target.value.slice(0, maxLen) : e.target.value)} rows={rows} className="bg-zinc-800 border-zinc-700 text-white resize-none" data-testid={`${testIdPrefix}-en`} />
         </div>
       </div>
       {hint && <p className="text-zinc-500 text-xs mt-1">{hint}</p>}
@@ -253,8 +399,8 @@ function PortfolioListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: 
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => onEdit(project.id)} data-testid={`button-edit-project-${project.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this project?")) deleteMutation.mutate(project.id); }} data-testid={`button-delete-project-${project.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={editBtnClass} onClick={() => onEdit(project.id)} data-testid={`button-edit-project-${project.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={deleteBtnClass} onClick={() => { if (confirm("Delete this project?")) deleteMutation.mutate(project.id); }} data-testid={`button-delete-project-${project.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             </Card>
           ))}
@@ -275,7 +421,7 @@ function PortfolioFormView({ id, onBack }: { id?: number; onBack: () => void }) 
     shortDescriptionNo: "", shortDescriptionEn: "",
     descriptionNo: "", descriptionEn: "",
     categoryNo: "", categoryEn: "",
-    coverImage: "", images: "", featured: false,
+    coverImage: "", images: "" as string, featured: false,
   });
 
   useEffect(() => {
@@ -303,27 +449,42 @@ function PortfolioFormView({ id, onBack }: { id?: number; onBack: () => void }) 
 
   const f = (key: string, val: string) => setForm((prev) => ({ ...prev, [key]: val }));
 
+  const addImage = (url: string) => {
+    setForm((prev) => ({
+      ...prev,
+      images: prev.images ? `${prev.images}, ${url}` : url,
+    }));
+  };
+
   return (
     <div>
       <Button variant="ghost" className="text-zinc-400 mb-6 -ml-2" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-2" /> Back to Portfolio</Button>
       <h1 className="text-2xl font-bold text-white mb-6">{isEdit ? "Edit Project" : "New Project"}</h1>
       <Card className="bg-zinc-900 border-zinc-800 p-6 max-w-4xl">
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-5" data-testid="form-admin-portfolio">
-          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-project-title" />
+          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-project-title" maxLen={MAX.title} />
           <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Slug</label>
-            <Input value={form.slug} onChange={(e) => f("slug", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-project-slug" />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-zinc-300 text-sm font-medium">Slug</label>
+              <CharCount value={form.slug} max={MAX.slug} />
+            </div>
+            <Input value={form.slug} onChange={(e) => f("slug", e.target.value.slice(0, MAX.slug))} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-project-slug" />
           </div>
-          <BilingualInput label="Category" valueNo={form.categoryNo} valueEn={form.categoryEn} onChangeNo={(v) => f("categoryNo", v)} onChangeEn={(v) => f("categoryEn", v)} testIdPrefix="input-project-category" />
-          <BilingualInput label="Short Description" valueNo={form.shortDescriptionNo} valueEn={form.shortDescriptionEn} onChangeNo={(v) => f("shortDescriptionNo", v)} onChangeEn={(v) => f("shortDescriptionEn", v)} testIdPrefix="input-project-short-desc" />
+          <BilingualInput label="Category" valueNo={form.categoryNo} valueEn={form.categoryEn} onChangeNo={(v) => f("categoryNo", v)} onChangeEn={(v) => f("categoryEn", v)} testIdPrefix="input-project-category" maxLen={MAX.category} />
+          <BilingualTextarea label="Short Description" valueNo={form.shortDescriptionNo} valueEn={form.shortDescriptionEn} onChangeNo={(v) => f("shortDescriptionNo", v)} onChangeEn={(v) => f("shortDescriptionEn", v)} rows={3} testIdPrefix="input-project-short-desc" maxLen={MAX.excerpt} />
           <BilingualTextarea label="Full Description" valueNo={form.descriptionNo} valueEn={form.descriptionEn} onChangeNo={(v) => f("descriptionNo", v)} onChangeEn={(v) => f("descriptionEn", v)} rows={8} testIdPrefix="input-project-desc" />
+          <ImageUploader value={form.coverImage} onChange={(v) => f("coverImage", v)} testId="input-project-cover" label="Cover Image" />
           <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Cover Image URL</label>
-            <Input value={form.coverImage} onChange={(e) => f("coverImage", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-project-cover" />
-          </div>
-          <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Additional Images (comma separated URLs)</label>
-            <Input value={form.images} onChange={(e) => f("images", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-project-images" />
+            <label className="text-zinc-300 text-sm font-medium block mb-2">Additional Images</label>
+            <div className="space-y-2">
+              <ImageUploader value="" onChange={addImage} testId="input-project-add-image" label="Upload Additional Image" />
+              {form.images && (
+                <div>
+                  <span className="text-zinc-500 text-xs block mb-1">Current URLs (comma separated)</span>
+                  <Textarea value={form.images} onChange={(e) => f("images", e.target.value)} rows={2} className="bg-zinc-800 border-zinc-700 text-white resize-none text-sm" data-testid="input-project-images" />
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <input type="checkbox" checked={form.featured} onChange={(e) => setForm((prev) => ({ ...prev, featured: e.target.checked }))} className="w-4 h-4 rounded border-zinc-700" data-testid="input-project-featured" />
@@ -365,8 +526,8 @@ function BlogListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: numbe
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs mt-1">{post.categoryNo}</Badge>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => onEdit(post.id)} data-testid={`button-edit-post-${post.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this post?")) deleteMutation.mutate(post.id); }} data-testid={`button-delete-post-${post.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={editBtnClass} onClick={() => onEdit(post.id)} data-testid={`button-edit-post-${post.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={deleteBtnClass} onClick={() => { if (confirm("Delete this post?")) deleteMutation.mutate(post.id); }} data-testid={`button-delete-post-${post.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             </Card>
           ))}
@@ -419,18 +580,18 @@ function BlogFormView({ id, onBack }: { id?: number; onBack: () => void }) {
       <h1 className="text-2xl font-bold text-white mb-6">{isEdit ? "Edit Post" : "New Post"}</h1>
       <Card className="bg-zinc-900 border-zinc-800 p-6 max-w-4xl">
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-5" data-testid="form-admin-blog">
-          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-post-title" />
+          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-post-title" maxLen={MAX.title} />
           <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Slug</label>
-            <Input value={form.slug} onChange={(e) => f("slug", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-post-slug" />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-zinc-300 text-sm font-medium">Slug</label>
+              <CharCount value={form.slug} max={MAX.slug} />
+            </div>
+            <Input value={form.slug} onChange={(e) => f("slug", e.target.value.slice(0, MAX.slug))} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-post-slug" />
           </div>
-          <BilingualInput label="Category" valueNo={form.categoryNo} valueEn={form.categoryEn} onChangeNo={(v) => f("categoryNo", v)} onChangeEn={(v) => f("categoryEn", v)} testIdPrefix="input-post-category" />
-          <BilingualTextarea label="Excerpt" valueNo={form.excerptNo} valueEn={form.excerptEn} onChangeNo={(v) => f("excerptNo", v)} onChangeEn={(v) => f("excerptEn", v)} rows={3} testIdPrefix="input-post-excerpt" />
+          <BilingualInput label="Category" valueNo={form.categoryNo} valueEn={form.categoryEn} onChangeNo={(v) => f("categoryNo", v)} onChangeEn={(v) => f("categoryEn", v)} testIdPrefix="input-post-category" maxLen={MAX.category} />
+          <BilingualTextarea label="Excerpt" valueNo={form.excerptNo} valueEn={form.excerptEn} onChangeNo={(v) => f("excerptNo", v)} onChangeEn={(v) => f("excerptEn", v)} rows={3} testIdPrefix="input-post-excerpt" maxLen={MAX.excerpt} />
           <BilingualTextarea label="Content" valueNo={form.contentNo} valueEn={form.contentEn} onChangeNo={(v) => f("contentNo", v)} onChangeEn={(v) => f("contentEn", v)} rows={12} testIdPrefix="input-post-content" hint="Use ## for headings, - for bullet points. Separate paragraphs with blank lines." />
-          <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Cover Image URL</label>
-            <Input value={form.coverImage} onChange={(e) => f("coverImage", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-post-cover" />
-          </div>
+          <ImageUploader value={form.coverImage} onChange={(v) => f("coverImage", v)} testId="input-post-cover" label="Cover Image" />
           <Button type="submit" disabled={mutation.isPending} data-testid="button-save-post">
             <Save className="w-4 h-4 mr-2" /> {mutation.isPending ? "Saving..." : (isEdit ? "Update Post" : "Create Post")}
           </Button>
@@ -467,8 +628,8 @@ function ServicesListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: n
                 {service.featured && <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-xs mt-1"><Star className="w-3 h-3 mr-1" />Featured</Badge>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => onEdit(service.id)} data-testid={`button-edit-service-${service.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this service?")) deleteMutation.mutate(service.id); }} data-testid={`button-delete-service-${service.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={editBtnClass} onClick={() => onEdit(service.id)} data-testid={`button-edit-service-${service.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={deleteBtnClass} onClick={() => { if (confirm("Delete this service?")) deleteMutation.mutate(service.id); }} data-testid={`button-delete-service-${service.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             </Card>
           ))}
@@ -520,17 +681,17 @@ function ServiceFormView({ id, onBack }: { id?: number; onBack: () => void }) {
       <h1 className="text-2xl font-bold text-white mb-6">{isEdit ? "Edit Service" : "New Service"}</h1>
       <Card className="bg-zinc-900 border-zinc-800 p-6 max-w-4xl">
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-5" data-testid="form-admin-service">
-          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-service-title" />
+          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => { f("titleNo", v); if (!isEdit) f("slug", autoSlug(v)); }} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-service-title" maxLen={MAX.title} />
           <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Slug</label>
-            <Input value={form.slug} onChange={(e) => f("slug", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-service-slug" />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-zinc-300 text-sm font-medium">Slug</label>
+              <CharCount value={form.slug} max={MAX.slug} />
+            </div>
+            <Input value={form.slug} onChange={(e) => f("slug", e.target.value.slice(0, MAX.slug))} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-service-slug" />
           </div>
-          <BilingualTextarea label="Excerpt" valueNo={form.excerptNo} valueEn={form.excerptEn} onChangeNo={(v) => f("excerptNo", v)} onChangeEn={(v) => f("excerptEn", v)} rows={3} testIdPrefix="input-service-excerpt" />
+          <BilingualTextarea label="Excerpt" valueNo={form.excerptNo} valueEn={form.excerptEn} onChangeNo={(v) => f("excerptNo", v)} onChangeEn={(v) => f("excerptEn", v)} rows={3} testIdPrefix="input-service-excerpt" maxLen={MAX.excerpt} />
           <BilingualTextarea label="Content" valueNo={form.contentNo} valueEn={form.contentEn} onChangeNo={(v) => f("contentNo", v)} onChangeEn={(v) => f("contentEn", v)} rows={10} testIdPrefix="input-service-content" hint="Use ## for headings, - for bullet points." />
-          <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Image URL</label>
-            <Input value={form.image} onChange={(e) => f("image", e.target.value)} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-service-image" />
-          </div>
+          <ImageUploader value={form.image} onChange={(v) => f("image", v)} testId="input-service-image" label="Service Image" />
           <div className="flex items-center gap-3">
             <input type="checkbox" checked={form.featured} onChange={(e) => setForm((prev) => ({ ...prev, featured: e.target.checked }))} className="w-4 h-4 rounded border-zinc-700" data-testid="input-service-featured" />
             <label className="text-zinc-300 text-sm font-medium">Featured service (shown on homepage)</label>
@@ -574,8 +735,8 @@ function ReviewsListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: nu
                 <p className="text-zinc-400 text-sm mt-1 line-clamp-1">{review.textNo}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => onEdit(review.id)} data-testid={`button-edit-review-${review.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="sm" variant="outline" className="border-zinc-700 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this review?")) deleteMutation.mutate(review.id); }} data-testid={`button-delete-review-${review.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={editBtnClass} onClick={() => onEdit(review.id)} data-testid={`button-edit-review-${review.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" variant="outline" className={deleteBtnClass} onClick={() => { if (confirm("Delete this review?")) deleteMutation.mutate(review.id); }} data-testid={`button-delete-review-${review.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             </Card>
           ))}
@@ -623,8 +784,11 @@ function ReviewFormView({ id, onBack }: { id?: number; onBack: () => void }) {
       <Card className="bg-zinc-900 border-zinc-800 p-6 max-w-4xl">
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-5" data-testid="form-admin-review">
           <div>
-            <label className="text-zinc-300 text-sm font-medium block mb-2">Author Name</label>
-            <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value })} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-review-author" />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-zinc-300 text-sm font-medium">Author Name</label>
+              <CharCount value={form.authorName} max={MAX.author} />
+            </div>
+            <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value.slice(0, MAX.author) })} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-review-author" />
           </div>
           <div>
             <label className="text-zinc-300 text-sm font-medium block mb-2">Rating (1-5)</label>
@@ -675,7 +839,7 @@ function HeroListView({ onEdit }: { onEdit: (id: number) => void }) {
                 <h3 className="text-white font-medium">{pageLabels[hero.pageKey] || hero.pageKey}</h3>
                 <p className="text-zinc-400 text-sm mt-1 truncate">{hero.titleNo}</p>
               </div>
-              <Button size="sm" variant="outline" className="border-zinc-700" onClick={() => onEdit(hero.id)} data-testid={`button-edit-hero-${hero.pageKey}`}>
+              <Button size="sm" variant="outline" className={editBtnClass} onClick={() => onEdit(hero.id)} data-testid={`button-edit-hero-${hero.pageKey}`}>
                 <Pencil className="w-3.5 h-3.5" />
               </Button>
             </Card>
@@ -724,9 +888,9 @@ function HeroFormView({ id, onBack }: { id: number; onBack: () => void }) {
       <h1 className="text-2xl font-bold text-white mb-6">Edit Hero - {form.pageKey}</h1>
       <Card className="bg-zinc-900 border-zinc-800 p-6 max-w-4xl">
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-5" data-testid="form-admin-hero">
-          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => f("titleNo", v)} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-hero-title" />
-          <BilingualInput label="Subtitle" valueNo={form.subtitleNo} valueEn={form.subtitleEn} onChangeNo={(v) => f("subtitleNo", v)} onChangeEn={(v) => f("subtitleEn", v)} testIdPrefix="input-hero-subtitle" />
-          <BilingualTextarea label="Description" valueNo={form.descriptionNo} valueEn={form.descriptionEn} onChangeNo={(v) => f("descriptionNo", v)} onChangeEn={(v) => f("descriptionEn", v)} rows={4} testIdPrefix="input-hero-desc" />
+          <BilingualInput label="Title" valueNo={form.titleNo} valueEn={form.titleEn} onChangeNo={(v) => f("titleNo", v)} onChangeEn={(v) => f("titleEn", v)} testIdPrefix="input-hero-title" maxLen={MAX.title} />
+          <BilingualInput label="Subtitle" valueNo={form.subtitleNo} valueEn={form.subtitleEn} onChangeNo={(v) => f("subtitleNo", v)} onChangeEn={(v) => f("subtitleEn", v)} testIdPrefix="input-hero-subtitle" maxLen={MAX.subtitle} />
+          <BilingualTextarea label="Description" valueNo={form.descriptionNo} valueEn={form.descriptionEn} onChangeNo={(v) => f("descriptionNo", v)} onChangeEn={(v) => f("descriptionEn", v)} rows={4} testIdPrefix="input-hero-desc" maxLen={MAX.excerpt} />
           <Button type="submit" disabled={mutation.isPending} data-testid="button-save-hero">
             <Save className="w-4 h-4 mr-2" /> {mutation.isPending ? "Saving..." : "Update Hero Content"}
           </Button>

@@ -58,7 +58,7 @@ export default function Portfolio() {
                     </div>
                     <div className="p-5">
                       <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 mb-3">{t(project, "category")}</Badge>
-                      <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors">{t(project, "title")}</h3>
+                      <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">{t(project, "title")}</h3>
                       <p className="text-zinc-400 text-sm leading-relaxed line-clamp-2">{t(project, "shortDescription")}</p>
                     </div>
                   </Card>
