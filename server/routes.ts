@@ -65,7 +65,14 @@ export async function registerRoutes(
       password === process.env.ADMIN_PASSWORD
     ) {
       req.session.isAdmin = true;
-      return res.json({ success: true });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        return res.json({ success: true });
+      });
+      return;
     }
     return res.status(401).json({ message: "Invalid credentials" });
   });
