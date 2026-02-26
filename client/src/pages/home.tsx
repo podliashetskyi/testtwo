@@ -191,9 +191,6 @@ function ReviewsSection() {
   const { lang, t } = useLanguage();
   const { data: allReviews } = useQuery<Review[]>({ queryKey: ["/api/reviews/featured"] });
   const displayReviews = useMemo(() => shuffle(allReviews || []).slice(0, 3), [allReviews]);
-  const avgRating = allReviews && allReviews.length > 0
-    ? (allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length).toFixed(1)
-    : "5.0";
 
   return (
     <section className="py-20 bg-zinc-950">
@@ -201,15 +198,6 @@ function ReviewsSection() {
         <div className="text-center mb-14">
           <span className="text-primary text-sm font-semibold uppercase tracking-wider">{lang === "no" ? "Anmeldelser" : "Testimonials"}</span>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">{ui("customerReviews", lang)}</h2>
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className="w-5 h-5 fill-primary text-primary" />
-              ))}
-            </div>
-            <span className="text-white font-semibold text-lg">{avgRating}</span>
-            <span className="text-zinc-400 text-sm">{ui("averageRating", lang)}</span>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
