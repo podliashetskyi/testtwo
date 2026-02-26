@@ -51,7 +51,7 @@ function HeroSection() {
         <img src="/images/hero-tile-work.png" alt="Professional tile installation" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-zinc-950/40" />
       </div>
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="max-w-2xl">
           {hero && (
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
@@ -92,9 +92,9 @@ function ServicesSection() {
   const displayServices = useMemo(() => shuffle(allServices || []).slice(0, 4), [allServices]);
 
   return (
-    <section className="py-20 bg-zinc-950">
+    <section className="py-14 bg-zinc-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <span className="text-primary text-sm font-semibold uppercase tracking-wider">{lang === "no" ? "Hva vi gjør" : "What We Do"}</span>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">{ui("ourServices", lang)}</h2>
         </div>
@@ -140,9 +140,9 @@ function PortfolioPreview() {
   const displayProjects = useMemo(() => shuffle(projects || []).slice(0, 4), [projects]);
 
   return (
-    <section className="py-20 bg-zinc-900">
+    <section className="py-14 bg-zinc-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-14">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-10">
           <div>
             <span className="text-primary text-sm font-semibold uppercase tracking-wider">{lang === "no" ? "Vårt arbeid" : "Our Work"}</span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">{ui("featuredProjects", lang)}</h2>
@@ -193,9 +193,9 @@ function ReviewsSection() {
   const displayReviews = useMemo(() => shuffle(allReviews || []).slice(0, 3), [allReviews]);
 
   return (
-    <section className="py-20 bg-zinc-950">
+    <section className="py-14 bg-zinc-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <span className="text-primary text-sm font-semibold uppercase tracking-wider">{lang === "no" ? "Anmeldelser" : "Testimonials"}</span>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">{ui("customerReviews", lang)}</h2>
         </div>
@@ -249,7 +249,7 @@ function ContactSection() {
   });
 
   return (
-    <section id="contact" className="py-20 bg-zinc-900">
+    <section id="contact" className="py-14 bg-zinc-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
           <div>
