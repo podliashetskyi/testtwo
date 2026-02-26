@@ -71,6 +71,14 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    const { ensureSessionTable } = await import("./db");
+    await ensureSessionTable();
+    console.log("Session table verified");
+  } catch (err) {
+    console.error("Session table creation error:", err);
+  }
+
+  try {
     const { seedDatabase } = await import("./seed");
     await seedDatabase();
   } catch (err) {
