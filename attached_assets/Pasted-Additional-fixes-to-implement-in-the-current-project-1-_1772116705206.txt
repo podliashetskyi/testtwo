@@ -1,0 +1,97 @@
+Additional fixes to implement in the current project:
+
+1. Prevent broken layouts from long text fields
+   There are currently no proper length limits or overflow protections for fields like:
+
+* title
+* subtitle
+* slug
+* category
+* excerpt
+* other short text fields where applicable
+
+This causes UI breakage in admin and public cards.
+
+Please implement both:
+A) sensible max character validation in admin forms
+B) safe frontend display truncation / overflow handling
+
+Requirements:
+
+* Add max length validation for short text fields, for example:
+
+  * title: reasonable max length
+  * subtitle: reasonable max length
+  * slug: reasonable max length and slug-safe formatting
+  * category: reasonable max length
+  * excerpt / short description: reasonable max length
+* Show validation feedback in admin if user exceeds limits
+* Prevent saving invalid overlong values
+* Keep longer rich content/body/content fields unrestricted or much less restricted where appropriate
+* On public pages, also protect layouts with proper truncation / overflow handling so cards never stretch badly even if legacy bad data exists
+
+2. Featured item cards on homepage
+   For featured services / featured projects / featured reviews or other featured items shown on homepage:
+
+* limit visible text preview to maximum 3 rows
+* after that, truncate and show ellipsis (...)
+* do this cleanly with CSS line clamp or equivalent
+* make sure cards stay visually aligned and consistent in height
+
+This should apply where long titles/excerpts currently break the card layout.
+
+3. Fix edit button visibility
+   Current edit button color is effectively black on black and is not visible.
+
+Please update edit buttons and similar admin action buttons so they follow the site theme:
+
+* yellow background or yellow-accent visible style
+* strong contrast
+* visible hover/focus states
+* consistent with the new black / white / yellow design system
+
+Apply this wherever the current action/edit buttons are hard to see.
+
+4. Local image upload from computer in admin
+   Admin must be able to upload images directly from local computer, not only paste image URLs.
+
+Implement image upload for relevant content types:
+
+* portfolio items
+* blog posts if applicable
+* services
+* any other content type already using images
+
+Requirements:
+
+* max file size: 5 MB
+* allow common image extensions / mime types:
+
+  * .jpg
+  * .jpeg
+  * .png
+  * .webp
+* validate both file type and file size
+* show clear success/error messages
+* store uploaded files in the project’s existing suitable location or storage flow
+* save the resulting image path/URL to the existing content model
+* keep backward compatibility with existing image URL fields if they already exist
+* if practical, allow both:
+
+  * upload from local computer
+  * manual image URL input
+
+Also:
+
+* ensure uploaded images display correctly on public pages
+* avoid breaking existing seeded/demo content
+* document any new upload folder, endpoint, config, or storage behavior in the implementation summary
+
+Acceptance criteria for this additional task:
+
+* long titles/subtitles/slugs/categories/excerpts no longer break layout
+* homepage featured card text is limited to 3 rows with ellipsis
+* edit buttons are clearly visible in yellow-accent style
+* admin can upload local images up to 5 MB in common formats
+* invalid files show proper validation errors
+* uploaded images appear correctly in admin and on public pages
