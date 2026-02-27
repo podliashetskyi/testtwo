@@ -33,10 +33,17 @@ function getVal(settings: SiteSetting[] | undefined, key: string, lang: string):
 }
 
 const contactSchema = z.object({
-  name: z.string().min(1, "Required"),
-  email: z.string().email("Invalid email"),
-  phone: z.string().optional(),
-  message: z.string().min(1, "Required"),
+  name: z.string().trim().min(1, "Required").max(100, "Max 100 characters"),
+  email: z.string().trim().email("Invalid email").max(260, "Max 260 characters"),
+  phone: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      return trimmed === "" ? undefined : trimmed;
+    },
+    z.string().max(40, "Max 40 digits").regex(/^\d+$/, "Phone must contain digits only").optional(),
+  ),
+  message: z.string().trim().min(1, "Required").max(2000, "Max 2000 characters"),
 });
 
 type ContactForm = z.infer<typeof contactSchema>;
@@ -308,7 +315,7 @@ function ContactSection() {
                   <FormItem>
                     <FormLabel className="text-zinc-300">{ui("name", lang)}</FormLabel>
                     <FormControl>
-                      <Input className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" data-testid="input-name" {...field} />
+                      <Input className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" maxLength={100} data-testid="input-name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -318,7 +325,7 @@ function ContactSection() {
                     <FormItem>
                       <FormLabel className="text-zinc-300">{ui("email", lang)}</FormLabel>
                       <FormControl>
-                        <Input type="email" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" data-testid="input-email" {...field} />
+                        <Input type="email" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" maxLength={260} data-testid="input-email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -327,7 +334,17 @@ function ContactSection() {
                     <FormItem>
                       <FormLabel className="text-zinc-300">{ui("phone", lang)} ({lang === "no" ? "valgfritt" : "optional"})</FormLabel>
                       <FormControl>
-                        <Input type="tel" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" data-testid="input-phone" {...field} value={field.value ?? ""} />
+                        <Input
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="\d*"
+                          maxLength={40}
+                          className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                          data-testid="input-phone"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 40))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -337,7 +354,7 @@ function ContactSection() {
                   <FormItem>
                     <FormLabel className="text-zinc-300">{ui("message", lang)}</FormLabel>
                     <FormControl>
-                      <Textarea rows={5} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none" data-testid="input-message" {...field} />
+                      <Textarea rows={5} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none" maxLength={2000} data-testid="input-message" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -9,7 +9,7 @@ import {
   portfolioProjects, blogPosts, services, reviews, heroContent, siteSettings, contactSubmissions,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 
 export interface IStorage {
   getPortfolioProjects(): Promise<PortfolioProject[]>;
@@ -54,6 +54,8 @@ export interface IStorage {
 
   createContactSubmission(contact: { name: string; email: string; phone?: string; message: string }): Promise<ContactSubmission>;
   getContactSubmissions(): Promise<ContactSubmission[]>;
+  updateContactSubmissionReadStatus(id: number, isRead: boolean): Promise<ContactSubmission | undefined>;
+  deleteContactSubmission(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -205,7 +207,29 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
   async getContactSubmissions(): Promise<ContactSubmission[]> {
-    return db.select().from(contactSubmissions);
+    return db
+      .select()
+      .from(contactSubmissions)
+      .orderBy(
+        asc(contactSubmissions.isRead),
+        desc(contactSubmissions.createdAt),
+        desc(contactSubmissions.id),
+      );
+  }
+  async updateContactSubmissionReadStatus(id: number, isRead: boolean): Promise<ContactSubmission | undefined> {
+    const [updated] = await db
+      .update(contactSubmissions)
+      .set({ isRead })
+      .where(eq(contactSubmissions.id, id))
+      .returning();
+    return updated;
+  }
+  async deleteContactSubmission(id: number): Promise<boolean> {
+    const result = await db
+      .delete(contactSubmissions)
+      .where(eq(contactSubmissions.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 

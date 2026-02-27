@@ -7,6 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   LayoutDashboard, Image, FileText, Mail, LogOut, Plus, Pencil, Trash2,
   ArrowLeft, Save, Eye, Star, Wrench, MessageSquare, Type, Settings,
@@ -753,9 +764,15 @@ function ReviewFormView({ id, onBack }: { id?: number; onBack: () => void }) {
   const isEdit = !!id;
   const { data: existing } = useQuery<Review[]>({ queryKey: ["/api/reviews"], enabled: isEdit });
   const review = existing?.find((r) => r.id === id);
+  const [validationErrors, setValidationErrors] = useState<{
+    authorName?: string;
+    rating?: string;
+    textNo?: string;
+    textEn?: string;
+  }>({});
 
   const [form, setForm] = useState({
-    authorName: "", rating: 5,
+    authorName: "", rating: 0,
     textNo: "", textEn: "",
     featured: true,
   });
@@ -770,8 +787,28 @@ function ReviewFormView({ id, onBack }: { id?: number; onBack: () => void }) {
     }
   }, [review]);
 
+  const validateForm = () => {
+    const nextErrors: {
+      authorName?: string;
+      rating?: string;
+      textNo?: string;
+      textEn?: string;
+    } = {};
+
+    if (!form.authorName.trim()) nextErrors.authorName = "Author name is required";
+    if (!Number.isInteger(form.rating) || form.rating < 1 || form.rating > 5) nextErrors.rating = "Rating is required";
+    if (!form.textNo.trim()) nextErrors.textNo = "Norwegian text is required";
+    if (!form.textEn.trim()) nextErrors.textEn = "English text is required";
+
+    setValidationErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!validateForm()) {
+        throw new Error("Please fill all required review fields");
+      }
       if (isEdit) await apiRequest("PUT", `/api/admin/reviews/${id}`, form);
       else await apiRequest("POST", "/api/admin/reviews", form);
     },
@@ -790,19 +827,58 @@ function ReviewFormView({ id, onBack }: { id?: number; onBack: () => void }) {
               <label className="text-zinc-300 text-sm font-medium">Author Name</label>
               <CharCount value={form.authorName} max={MAX.author} />
             </div>
-            <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value.slice(0, MAX.author) })} className="bg-zinc-800 border-zinc-700 text-white" data-testid="input-review-author" />
+            <Input
+              value={form.authorName}
+              onChange={(e) => {
+                setForm({ ...form, authorName: e.target.value.slice(0, MAX.author) });
+                if (validationErrors.authorName) setValidationErrors((prev) => ({ ...prev, authorName: undefined }));
+              }}
+              className="bg-zinc-800 border-zinc-700 text-white"
+              data-testid="input-review-author"
+            />
+            {validationErrors.authorName && <p className="text-red-400 text-xs mt-1">{validationErrors.authorName}</p>}
           </div>
           <div>
             <label className="text-zinc-300 text-sm font-medium block mb-2">Rating (1-5)</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((r) => (
-                <button key={r} type="button" onClick={() => setForm({ ...form, rating: r })} className="p-1" data-testid={`button-rating-${r}`}>
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => {
+                    setForm({ ...form, rating: r });
+                    if (validationErrors.rating) setValidationErrors((prev) => ({ ...prev, rating: undefined }));
+                  }}
+                  className="p-1"
+                  data-testid={`button-rating-${r}`}
+                >
                   <Star className={`w-6 h-6 ${r <= form.rating ? "fill-primary text-primary" : "text-zinc-700"}`} />
                 </button>
               ))}
             </div>
+            {validationErrors.rating && <p className="text-red-400 text-xs mt-1">{validationErrors.rating}</p>}
           </div>
-          <BilingualTextarea label="Review Text" valueNo={form.textNo} valueEn={form.textEn} onChangeNo={(v) => setForm({ ...form, textNo: v })} onChangeEn={(v) => setForm({ ...form, textEn: v })} rows={4} testIdPrefix="input-review-text" />
+          <BilingualTextarea
+            label="Review Text"
+            valueNo={form.textNo}
+            valueEn={form.textEn}
+            onChangeNo={(v) => {
+              setForm({ ...form, textNo: v });
+              if (validationErrors.textNo) setValidationErrors((prev) => ({ ...prev, textNo: undefined }));
+            }}
+            onChangeEn={(v) => {
+              setForm({ ...form, textEn: v });
+              if (validationErrors.textEn) setValidationErrors((prev) => ({ ...prev, textEn: undefined }));
+            }}
+            rows={4}
+            testIdPrefix="input-review-text"
+          />
+          {(validationErrors.textNo || validationErrors.textEn) && (
+            <div className="text-red-400 text-xs space-y-1">
+              {validationErrors.textNo && <p>{validationErrors.textNo}</p>}
+              {validationErrors.textEn && <p>{validationErrors.textEn}</p>}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="w-4 h-4 rounded border-zinc-700" data-testid="input-review-featured" />
             <label className="text-zinc-300 text-sm font-medium">Featured review (shown on homepage)</label>
@@ -989,7 +1065,54 @@ function SettingsView() {
 }
 
 function ContactsView() {
+  const { toast } = useToast();
   const { data: contacts, isLoading } = useQuery<ContactSubmission[]>({ queryKey: ["/api/admin/contacts"] });
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const selectedContact = contacts?.find((c) => c.id === selectedContactId) ?? null;
+
+  const markReadMutation = useMutation({
+    mutationFn: async ({ id, isRead }: { id: number; isRead: boolean }) => {
+      await apiRequest("PATCH", `/api/admin/contacts/${id}/read`, { isRead });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/contacts"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/admin/contacts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/contacts"] });
+      setSelectedContactId(null);
+      toast({ title: "Message deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const openContact = (contact: ContactSubmission) => {
+    setSelectedContactId(contact.id);
+    if (!contact.isRead) {
+      markReadMutation.mutate({ id: contact.id, isRead: true });
+    }
+  };
+
+  const requestDelete = (id: number) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (pendingDeleteId === null) return;
+    deleteMutation.mutate(pendingDeleteId);
+    setPendingDeleteId(null);
+  };
 
   return (
     <div>
@@ -1004,20 +1127,121 @@ function ContactsView() {
       ) : (
         <div className="space-y-3">
           {contacts?.map((contact) => (
-            <Card key={contact.id} className="bg-zinc-900 border-zinc-800 p-5" data-testid={`admin-contact-${contact.id}`}>
+            <Card
+              key={contact.id}
+              className={`bg-zinc-900 border-zinc-800 p-5 cursor-pointer transition-colors ${
+                contact.isRead ? "hover:border-zinc-700" : "border-primary/40 bg-zinc-900/90 hover:border-primary/60"
+              }`}
+              data-testid={`admin-contact-${contact.id}`}
+              onClick={() => openContact(contact)}
+            >
               <div className="flex items-start justify-between gap-4 mb-2">
-                <h3 className="text-white font-medium">{contact.name}</h3>
-                <span className="text-zinc-500 text-xs shrink-0">{contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : ""}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="text-white font-medium truncate">{contact.name}</h3>
+                  <Badge variant={contact.isRead ? "outline" : "default"} className={contact.isRead ? "" : "bg-primary text-primary-foreground"}>
+                    {contact.isRead ? "Read" : "Unread"}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-zinc-500 text-xs">
+                    {contact.createdAt ? new Date(contact.createdAt).toLocaleString() : ""}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={deleteBtnClass}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestDelete(contact.id);
+                    }}
+                    data-testid={`button-delete-contact-${contact.id}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-zinc-400 mb-3">
                 <span>{contact.email}</span>
                 {contact.phone && <span>{contact.phone}</span>}
               </div>
-              <p className="text-zinc-300 text-sm">{contact.message}</p>
+              <p className="text-zinc-300 text-sm line-clamp-2 break-words [overflow-wrap:anywhere]">{contact.message}</p>
             </Card>
           ))}
         </div>
       )}
+
+      <Dialog open={!!selectedContact} onOpenChange={(open) => { if (!open) setSelectedContactId(null); }}>
+        {selectedContact && (
+          <DialogContent className="bg-zinc-900 border-zinc-700 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="pr-8 break-words [overflow-wrap:anywhere]">
+                Message from {selectedContact.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={selectedContact.isRead ? "outline" : "default"} className={selectedContact.isRead ? "" : "bg-primary text-primary-foreground"}>
+                  {selectedContact.isRead ? "Read" : "Unread"}
+                </Badge>
+                <span className="text-zinc-400">{selectedContact.createdAt ? new Date(selectedContact.createdAt).toLocaleString() : ""}</span>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="text-zinc-400">Email</p>
+                <p className="text-zinc-200 break-all">{selectedContact.email}</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="text-zinc-400">Phone</p>
+                <p className="text-zinc-200">{selectedContact.phone || "-"}</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="text-zinc-400">Message</p>
+                <p className="text-zinc-200 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{selectedContact.message}</p>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  className={deleteBtnClass}
+                  onClick={() => requestDelete(selectedContact.id)}
+                  disabled={deleteMutation.isPending}
+                  data-testid="button-delete-contact-dialog"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Message
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+      >
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              This action is permanent and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700 hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              data-testid="button-confirm-delete-contact"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

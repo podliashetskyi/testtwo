@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import {
   insertPortfolioSchema, insertBlogPostSchema, insertServiceSchema,
-  insertReviewSchema, insertHeroContentSchema, insertSiteSettingSchema,
+  insertHeroContentSchema, insertSiteSettingSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -35,10 +35,29 @@ const upload = multer({
 });
 
 const contactSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  message: z.string().min(1),
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(260),
+  phone: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      return trimmed === "" ? undefined : trimmed;
+    },
+    z.string().max(40).regex(/^\d+$/, "Phone must contain digits only").optional(),
+  ),
+  message: z.string().trim().min(1).max(2000),
+});
+
+const contactReadSchema = z.object({
+  isRead: z.boolean(),
+});
+
+const reviewSchema = z.object({
+  authorName: z.string().trim().min(1, "Author is required"),
+  rating: z.coerce.number().int().min(1, "Rating is required").max(5, "Rating is required"),
+  textNo: z.string().trim().min(1, "Norwegian review text is required"),
+  textEn: z.string().trim().min(1, "English review text is required"),
+  featured: z.boolean().optional().default(true),
 });
 
 declare module "express-session" {
@@ -251,7 +270,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/reviews", requireAdmin, async (req, res) => {
-    const parsed = insertReviewSchema.safeParse(req.body);
+    const parsed = reviewSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
     }
@@ -261,7 +280,11 @@ export async function registerRoutes(
 
   app.put("/api/admin/reviews/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
-    const review = await storage.updateReview(id, req.body);
+    const parsed = reviewSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
+    }
+    const review = await storage.updateReview(id, parsed.data);
     if (!review) return res.status(404).json({ message: "Not found" });
     res.json(review);
   });
@@ -333,6 +356,28 @@ export async function registerRoutes(
   app.get("/api/admin/contacts", requireAdmin, async (_req, res) => {
     const submissions = await storage.getContactSubmissions();
     res.json(submissions);
+  });
+
+  app.patch("/api/admin/contacts/:id/read", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+
+    const parsed = contactReadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
+    }
+
+    const updated = await storage.updateContactSubmissionReadStatus(id, parsed.data.isRead);
+    if (!updated) return res.status(404).json({ message: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/admin/contacts/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const deleted = await storage.deleteContactSubmission(id);
+    if (!deleted) return res.status(404).json({ message: "Not found" });
+    res.json({ success: true });
   });
 
   app.post("/api/contact", async (req, res) => {
