@@ -23,6 +23,41 @@ export default function Navbar() {
     { label: ui("blog", lang), path: "/blog" },
   ];
 
+  const scrollToContact = () => {
+    const contactSection = document.getElementById("contact");
+    if (!contactSection) return false;
+
+    const stickyHeaderOffset = 80;
+    const y = contactSection.getBoundingClientRect().top + window.scrollY - stickyHeaderOffset;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+
+    if (window.location.hash !== "#contact") {
+      window.history.replaceState(null, "", "/#contact");
+    }
+    return true;
+  };
+
+  const goToContact = (closeMobile = false) => {
+    if (closeMobile) setMobileOpen(false);
+
+    if (window.location.pathname === "/") {
+      if (scrollToContact()) return;
+
+      let attempts = 0;
+      const retryScroll = () => {
+        attempts += 1;
+        if (scrollToContact()) return;
+        if (attempts < 10) {
+          window.setTimeout(retryScroll, 100);
+        }
+      };
+      retryScroll();
+      return;
+    }
+
+    window.location.href = "/#contact";
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-zinc-950 border-b border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,11 +98,9 @@ export default function Navbar() {
                 {phone}
               </a>
             )}
-            <Link href="/#contact">
-              <Button size="sm" data-testid="button-get-quote">
-                {lang === "no" ? "Få et tilbud" : "Get a Quote"}
-              </Button>
-            </Link>
+            <Button size="sm" onClick={() => goToContact()} data-testid="button-get-quote">
+              {lang === "no" ? "Få et tilbud" : "Get a Quote"}
+            </Button>
           </div>
 
           <button
@@ -110,11 +143,9 @@ export default function Navbar() {
                 {phone}
               </a>
             )}
-            <Link href="/#contact" onClick={() => setMobileOpen(false)}>
-              <Button size="sm" className="w-full" data-testid="button-get-quote-mobile">
-                {lang === "no" ? "Få et tilbud" : "Get a Quote"}
-              </Button>
-            </Link>
+            <Button size="sm" className="w-full" onClick={() => goToContact(true)} data-testid="button-get-quote-mobile">
+              {lang === "no" ? "Få et tilbud" : "Get a Quote"}
+            </Button>
           </div>
         </div>
       )}

@@ -189,8 +189,12 @@ function PortfolioPreview() {
 
 function ReviewsSection() {
   const { lang, t } = useLanguage();
-  const { data: allReviews } = useQuery<Review[]>({ queryKey: ["/api/reviews/featured"] });
-  const displayReviews = useMemo(() => shuffle(allReviews || []).slice(0, 3), [allReviews]);
+  const { data: allReviews } = useQuery<Review[]>({
+    queryKey: ["/api/reviews"],
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const displayReviews = useMemo(() => shuffle(allReviews || []), [allReviews]);
 
   return (
     <section className="py-14 bg-zinc-950">
@@ -200,7 +204,7 @@ function ReviewsSection() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">{ui("customerReviews", lang)}</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayReviews.map((review) => (
             <Card key={review.id} className="bg-zinc-900 border-zinc-800 p-6" data-testid={`card-review-${review.id}`}>
               <div className="flex items-center gap-1 mb-3">
