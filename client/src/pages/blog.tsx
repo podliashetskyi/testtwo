@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, ui } from "@/lib/language";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type { BlogPost, HeroContent } from "@shared/schema";
 
@@ -55,7 +56,13 @@ export default function Blog() {
                 <Link key={post.id} href={`/blog/${post.slug}`}>
                   <Card className="bg-zinc-900 border-zinc-800 group cursor-pointer h-full" data-testid={`card-blog-${post.id}`}>
                     <div className="relative aspect-video rounded-t-md overflow-hidden">
-                      <img src={post.coverImage} alt={t(post, "title")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <img
+                        src={previewImageUrl(post.coverImage)}
+                        alt={t(post, "title")}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-3 mb-3">

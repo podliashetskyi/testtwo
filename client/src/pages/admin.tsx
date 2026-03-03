@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type {
   PortfolioProject, BlogPost, ContactSubmission,
@@ -156,22 +157,18 @@ function ImageUploader({ value, onChange, testId, label }: {
             <CheckCircle className="w-3.5 h-3.5 shrink-0" /> {success}
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <Input
-            value={value}
-            onChange={(e) => { onChange(e.target.value); setError(""); setSuccess(""); }}
-            placeholder="Or paste image URL"
-            className="bg-zinc-800 border-zinc-700 text-white text-sm"
-            data-testid={testId}
-          />
-          {value && (
+        {value && (
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded bg-zinc-900 px-2 py-1 text-xs text-zinc-400 overflow-x-auto" data-testid={testId}>
+              {value}
+            </code>
             <Button type="button" size="sm" variant="ghost" className="text-zinc-500 hover:text-zinc-300 shrink-0 px-2" onClick={() => onChange("")}>
               <X className="w-3.5 h-3.5" />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         {value && (
-          <img src={value} alt="Preview" className="h-16 w-auto rounded-md object-cover border border-zinc-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <img src={previewImageUrl(value)} alt="Preview" className="h-16 w-auto rounded-md object-cover border border-zinc-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         )}
       </div>
     </div>
@@ -403,7 +400,7 @@ function PortfolioListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: 
         <div className="space-y-3">
           {projects?.map((project) => (
             <Card key={project.id} className="bg-zinc-900 border-zinc-800 p-4 flex items-center gap-4" data-testid={`admin-project-${project.id}`}>
-              <img src={project.coverImage} alt={project.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" />
+              <img src={previewImageUrl(project.coverImage)} alt={project.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" loading="lazy" decoding="async" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-white font-medium truncate">{project.titleNo}</h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -533,7 +530,7 @@ function BlogListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: numbe
         <div className="space-y-3">
           {posts?.map((post) => (
             <Card key={post.id} className="bg-zinc-900 border-zinc-800 p-4 flex items-center gap-4" data-testid={`admin-post-${post.id}`}>
-              <img src={post.coverImage} alt={post.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" />
+              <img src={previewImageUrl(post.coverImage)} alt={post.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" loading="lazy" decoding="async" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-white font-medium truncate">{post.titleNo}</h3>
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs mt-1">{post.categoryNo}</Badge>
@@ -635,7 +632,7 @@ function ServicesListView({ onNew, onEdit }: { onNew: () => void; onEdit: (id: n
         <div className="space-y-3">
           {allServices?.map((service) => (
             <Card key={service.id} className="bg-zinc-900 border-zinc-800 p-4 flex items-center gap-4" data-testid={`admin-service-${service.id}`}>
-              {service.image && <img src={service.image} alt={service.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" />}
+              {service.image && <img src={previewImageUrl(service.image)} alt={service.titleNo} className="w-16 h-16 rounded-md object-cover shrink-0" loading="lazy" decoding="async" />}
               <div className="flex-1 min-w-0">
                 <h3 className="text-white font-medium truncate">{service.titleNo}</h3>
                 {service.featured && <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 text-xs mt-1"><Star className="w-3 h-3 mr-1" />Featured</Badge>}

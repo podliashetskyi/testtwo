@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, ui } from "@/lib/language";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type { PortfolioProject, HeroContent } from "@shared/schema";
 
@@ -49,7 +50,13 @@ export default function Portfolio() {
                 <Link key={project.id} href={`/portfolio/${project.slug}`}>
                   <Card className="bg-zinc-900 border-zinc-800 group cursor-pointer h-full" data-testid={`card-portfolio-${project.id}`}>
                     <div className="relative aspect-[4/3] rounded-t-md overflow-hidden">
-                      <img src={project.coverImage} alt={t(project, "title")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <img
+                        src={previewImageUrl(project.coverImage)}
+                        alt={t(project, "title")}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
                       <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                           <ArrowRight className="w-5 h-5 text-primary-foreground" />

@@ -12,6 +12,10 @@ import multer from "multer";
 import path from "path";
 import { randomUUID } from "crypto";
 import fs from "fs";
+import {
+  isCanonicalLocalImageUrl,
+  writeOptimizedVariantsFromBuffer,
+} from "./image-utils";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -20,19 +24,69 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `${randomUUID()}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (_req, file, cb) => {
     if (ALLOWED_MIME.includes(file.mimetype)) cb(null, true);
     else cb(new Error("Only .jpg, .png, and .webp images are allowed"));
   },
 });
+
+function invalidImageMessage(fieldName: string) {
+  return `${fieldName} must be a local /images/... URL and cannot use preview (-sm.webp) variants.`;
+}
+
+function validateCanonicalImageField(value: unknown, fieldName: string): string | null {
+  if (typeof value !== "string" || !value.trim()) {
+    return `${fieldName} is required.`;
+  }
+  if (!isCanonicalLocalImageUrl(value)) return invalidImageMessage(fieldName);
+  return null;
+}
+
+function validateOptionalCanonicalImageField(value: unknown, fieldName: string): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  return validateCanonicalImageField(value, fieldName);
+}
+
+function validatePortfolioImagePayload(payload: any, isPartial: boolean): string | null {
+  if (!payload || typeof payload !== "object") return "Invalid data";
+
+  if (!isPartial || payload.coverImage !== undefined) {
+    const err = validateCanonicalImageField(payload.coverImage, "coverImage");
+    if (err) return err;
+  }
+
+  if (!isPartial || payload.images !== undefined) {
+    if (!Array.isArray(payload.images)) {
+      return "images must be an array of local image URLs.";
+    }
+    for (const image of payload.images) {
+      const err = validateCanonicalImageField(image, "images[]");
+      if (err) return err;
+    }
+  }
+
+  return null;
+}
+
+function validateBlogImagePayload(payload: any, isPartial: boolean): string | null {
+  if (!payload || typeof payload !== "object") return "Invalid data";
+
+  if (!isPartial || payload.coverImage !== undefined) {
+    return validateCanonicalImageField(payload.coverImage, "coverImage");
+  }
+  return null;
+}
+
+function validateServiceImagePayload(payload: any, isPartial: boolean): string | null {
+  if (!payload || typeof payload !== "object") return "Invalid data";
+
+  if (!isPartial || payload.image !== undefined) {
+    return validateOptionalCanonicalImageField(payload.image, "image");
+  }
+  return null;
+}
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -142,8 +196,13 @@ export async function registerRoutes(
         return res.status(400).json({ message: msg });
       }
       if (!req.file) return res.status(400).json({ message: "No file provided" });
-      const url = `/images/uploads/${req.file.filename}`;
-      return res.json({ url });
+      const baseName = randomUUID();
+      writeOptimizedVariantsFromBuffer(req.file.buffer, UPLOAD_DIR, baseName)
+        .then(({ url, previewUrl }) => res.json({ url, previewUrl }))
+        .catch((uploadErr: any) => {
+          console.error("Image processing failed:", uploadErr);
+          res.status(400).json({ message: "Invalid image data" });
+        });
     });
   });
 
@@ -168,12 +227,20 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
     }
+    const imageValidationError = validatePortfolioImagePayload(parsed.data, false);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const project = await storage.createPortfolioProject(parsed.data);
     res.status(201).json(project);
   });
 
   app.put("/api/admin/portfolio/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
+    const imageValidationError = validatePortfolioImagePayload(req.body, true);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const project = await storage.updatePortfolioProject(id, req.body);
     if (!project) return res.status(404).json({ message: "Not found" });
     res.json(project);
@@ -202,12 +269,20 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
     }
+    const imageValidationError = validateBlogImagePayload(parsed.data, false);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const post = await storage.createBlogPost(parsed.data);
     res.status(201).json(post);
   });
 
   app.put("/api/admin/blog/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
+    const imageValidationError = validateBlogImagePayload(req.body, true);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const post = await storage.updateBlogPost(id, req.body);
     if (!post) return res.status(404).json({ message: "Not found" });
     res.json(post);
@@ -241,12 +316,20 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
     }
+    const imageValidationError = validateServiceImagePayload(parsed.data, false);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const service = await storage.createService(parsed.data);
     res.status(201).json(service);
   });
 
   app.put("/api/admin/services/:id", requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
+    const imageValidationError = validateServiceImagePayload(req.body, true);
+    if (imageValidationError) {
+      return res.status(400).json({ message: imageValidationError });
+    }
     const service = await storage.updateService(id, req.body);
     if (!service) return res.status(404).json({ message: "Not found" });
     res.json(service);

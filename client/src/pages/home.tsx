@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, useMemo } from "react";
 import { useLanguage, ui } from "@/lib/language";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type { PortfolioProject, Service, Review, HeroContent, SiteSetting } from "@shared/schema";
 
@@ -55,7 +56,7 @@ function HeroSection() {
   return (
     <section className="relative min-h-[600px] lg:min-h-[700px] flex items-center">
       <div className="absolute inset-0">
-        <img src="/images/hero-tile-work.png" alt="Professional tile installation" className="w-full h-full object-cover" />
+        <img src="/images/hero-tile-work.webp" alt="Professional tile installation" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 to-zinc-950/40" />
       </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
@@ -118,7 +119,13 @@ function ServicesSection() {
                 <Card className="bg-zinc-900 border-zinc-800 p-6 group cursor-pointer h-full" data-testid={`card-service-${svc.id}`}>
                   {svc.image && (
                     <div className="aspect-[16/9] rounded-md overflow-hidden mb-4">
-                      <img src={svc.image} alt={t(svc, "title")} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img
+                        src={previewImageUrl(svc.image)}
+                        alt={t(svc, "title")}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                   )}
                   <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">{t(svc, "title")}</h3>
@@ -177,7 +184,13 @@ function PortfolioPreview() {
               <Link key={project.id} href={`/portfolio/${project.slug}`} className="h-full">
                 <Card className="bg-zinc-800/50 border-zinc-700/50 group cursor-pointer h-full flex flex-col" data-testid={`card-project-${project.id}`}>
                   <div className="relative aspect-[4/3] rounded-t-md overflow-hidden">
-                    <img src={project.coverImage} alt={t(project, "title")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img
+                      src={previewImageUrl(project.coverImage)}
+                      alt={t(project, "title")}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                   <div className="p-4 flex flex-col flex-1">
                     <span className="text-primary text-xs font-medium uppercase tracking-wider">{t(project, "category")}</span>

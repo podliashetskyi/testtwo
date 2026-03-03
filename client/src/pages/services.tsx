@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, ui } from "@/lib/language";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type { Service, HeroContent } from "@shared/schema";
 
@@ -46,7 +47,13 @@ export default function Services() {
                   <Card className="bg-zinc-900 border-zinc-800 group cursor-pointer h-full" data-testid={`card-service-${service.id}`}>
                     {service.image && (
                       <div className="relative aspect-video rounded-t-md overflow-hidden">
-                        <img src={service.image} alt={t(service, "title")} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <img
+                          src={previewImageUrl(service.image)}
+                          alt={t(service, "title")}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                     )}
                     <div className="p-5">

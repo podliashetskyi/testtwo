@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, ui } from "@/lib/language";
+import { previewImageUrl } from "@/lib/images";
 import SEO from "@/components/seo";
 import type { PortfolioProject } from "@shared/schema";
 import { useState } from "react";
@@ -83,7 +84,7 @@ export default function PortfolioDetail() {
           <div className="flex gap-3 mb-10 overflow-x-auto pb-2">
             {allImages.map((img, i) => (
               <button key={i} onClick={() => setSelectedImage(i)} className={`shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors ${i === selectedImage ? "border-primary" : "border-zinc-800 hover:border-zinc-600"}`} data-testid={`button-thumbnail-${i}`}>
-                <img src={img} alt={`${title} ${i + 1}`} className="w-full h-full object-cover" />
+                <img src={previewImageUrl(img)} alt={`${title} ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </button>
             ))}
           </div>

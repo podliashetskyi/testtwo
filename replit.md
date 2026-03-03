@@ -77,7 +77,7 @@ A professional bilingual (Norwegian/English) business card website for Max Flis 
 - POST `/api/admin/login` - Admin login
 - POST `/api/admin/logout` - Admin logout
 - GET `/api/admin/me` - Check admin auth status
-- POST `/api/admin/upload` - Upload image (multer, max 5MB, jpg/png/webp only, saves to /images/uploads/)
+- POST `/api/admin/upload` - Upload image (max 5MB, jpg/png/webp input, outputs canonical + preview WebP in `/images/uploads/`)
 - CRUD for: portfolio, blog, services, reviews, hero content, settings
 - GET `/api/admin/contacts` - List contact submissions
 
@@ -102,6 +102,17 @@ A professional bilingual (Norwegian/English) business card website for Max Flis 
 - Bilingual admin forms with side-by-side NO/EN fields
 - Admin form fields have max-length validation with character count indicators
 - Admin edit/delete buttons use yellow/red accent colors for visibility
-- Image upload via drag-and-drop or manual URL entry in admin forms
+- Image upload via drag-and-drop/file picker in admin forms
 - Homepage featured cards use line-clamp-2 on titles and line-clamp-3 on descriptions/excerpts
-- Uploaded images stored in client/public/images/uploads/ (multer, max 5MB)
+- Uploaded images stored in `uploads/` as optimized WebP variants (`<id>.webp`, `<id>-sm.webp`)
+
+## Image Pipeline Notes
+- Canonical image format is WebP; preview variants use `-sm.webp`
+- List/card UIs request preview variants; detail pages use canonical variants
+- Backfill command: `npm run images:backfill`
+- Backfill now mirrors static assets to `dist/public/images` when that folder exists, preventing stale production static files
+
+### Rollout Order (important)
+1. Run image backfill (`npm run images:backfill`)
+2. Build/rebuild image (`docker compose up -d --build` or equivalent build step)
+3. Start/restart app container(s)
